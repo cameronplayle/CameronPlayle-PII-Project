@@ -4,25 +4,8 @@ date: "2024-02-07"
 output: html_document
 ---
 
+  This File contains all code needed to replicate this project. 
   
-  
-This Quarto file loads the cleaned data and does some exploring.
-
-I'm only showing it the way where the code is included in the file. 
-As described in the `processing_code` materials, I currently prefer the approach of having R code in a separate file and pulling it in.
-
-But I already had this written and haven't yet re-done it that way. Feel free to redo and send a pull request on GitHub :)
-
-Again, it is largely a matter of preference and what makes the most sense to decide if one wants to have code inside Quarto files, or as separate R files.
-And sometimes, an R script with enough comments is good enough and one doesn't need a Quarto file.
-
-Also note that while here I split cleaning and exploring, this is iterative. You saw that as part of the processing, we already had to explore the data somewhat to understand how to clean it. In general, as you explore, you'll find things that need cleaning. As you clean, you can explore more. Therefore, at times it might make more sense to combine the cleaning and exploring code parts into a single R or Quarto file. Or split things in any other logical way.
-
-As part of the exploratory analysis, you should produce plots or tables or other summary quantities for the most interesting/important quantities in your data. Depending on the total number of variables in your dataset, explore all or some of the others. Figures produced here might be histograms or density plots, correlation plots, etc. Tables might summarize your data.
-
-Start by exploring one variable at a time. Then continue by creating plots or tables of the outcome(s) of interest and the predictor/exposure/input variables you are most interested in. If your dataset is small, you can do that for all variables. 
-
-Plots produced here can be scatterplots, boxplots, violinplots, etc. Tables can be simple 2x2 tables or larger ones.
 
 # Setup
 
@@ -105,70 +88,50 @@ average_data <- merged_data %>%
   select(player_name, avg_ff_speed, avg_ff_spin, avg_ch_speed, avg_ch_spin, avg_cu_speed, avg_cu_spin, avg_fc_speed, avg_fc_spin, avg_sl_speed, avg_sl_spin, TJS)
 
 ```
-Data Viz 
+
+
+
+
 ```{r}
+library(ggplot2)
+library(dplyr)
 
-# Calculate average speeds and spin rates for each pitch type
-average_data <- merged_data %>%
-  mutate(
-    avg_ff_speed = rowMeans(select(., FF_release_speed, SI_release_speed), na.rm = TRUE),
-    avg_ff_spin = rowMeans(select(., FF_release_spin_rate, SI_release_spin_rate), na.rm = TRUE),
-    avg_ch_speed = CH_release_speed,
-    avg_ch_spin = CH_release_spin_rate,
-    avg_cu_speed = CU_release_speed,
-    avg_cu_spin = CU_release_spin_rate,
-    avg_fc_speed = FC_release_speed,
-    avg_fc_spin = FC_release_spin_rate,
-    avg_sl_speed = SL_release_speed,
-    avg_sl_spin = SL_release_spin_rate
-  ) %>%
-  select(player_name, avg_ff_speed, avg_ff_spin, avg_ch_speed, avg_ch_spin, avg_cu_speed, avg_cu_spin, avg_fc_speed, avg_fc_spin, avg_sl_speed, avg_sl_spin, TJS)
+# Create the data frame
+data <- data.frame(
+  pitch_type = c("avg_ch_speed", "avg_ch_spin", "avg_cu_speed", "avg_cu_spin",
+                 "avg_fc_speed", "avg_fc_spin", "avg_ff_speed", "avg_ff_spin",
+                 "avg_sl_speed", "avg_sl_spin"),
+  average_value = c(85.92492, 1796.68693, 78.69543, 2389.74542, 
+                    89.56959, 2333.64085, 93.42632, 2235.64528, 
+                    84.68511, 2357.68692)
+)
 
-# Separate the data for speed and spin rate, and remove NA values
-speed_data <- average_data %>%
-  select(player_name, starts_with("avg_")) %>%
-  select(player_name, avg_ff_speed, avg_ch_speed, avg_cu_speed, avg_fc_speed, avg_sl_speed) %>%
-  drop_na()
+# Separate data for speed and spin
+simple_speed_data <- data %>%
+  filter(grepl("speed", pitch_type))
 
-spin_rate_data <- average_data %>%
-  select(player_name, starts_with("avg_")) %>%
-  select(player_name, avg_ff_spin, avg_ch_spin, avg_cu_spin, avg_fc_spin, avg_sl_spin) %>%
-  drop_na()
+simple_spin_data <- data %>%
+  filter(grepl("spin", pitch_type))
 
-# Reshape the data from wide to long format for speed, and remove NA values
-speed_data_long <- speed_data %>%
-  pivot_longer(cols = starts_with("avg_"), names_to = "pitch_type", values_to = "average_speed") %>%
-  drop_na()
-
-# Reshape the data from wide to long format for spin rate, and remove NA values
-spin_rate_data_long <- spin_rate_data %>%
-  pivot_longer(cols = starts_with("avg_"), names_to = "pitch_type", values_to = "average_spin_rate") %>%
-  drop_na()
-
-# Create a bar plot for average speeds
-speed_plot <- ggplot(speed_data_long, aes(x = pitch_type, y = average_speed)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal() +
-  labs(title = "Average Speeds for Each Pitch Type",
+# Plot for average speed
+ggplot(simple_speed_data, aes(x = pitch_type, y = average_value, fill = pitch_type)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Pitch Speeds",
        x = "Pitch Type",
-       y = "Average Speed") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Create a bar plot for average spin rates
-spin_rate_plot <- ggplot(spin_rate_data_long, aes(x = pitch_type, y = average_spin_rate)) +
-  geom_bar(stat = "identity", fill = "darkorange") +
+       y = "Average Speed (mph)") +
   theme_minimal() +
-  labs(title = "Average Spin Rates for Each Pitch Type",
-       x = "Pitch Type",
-       y = "Average Spin Rate") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  scale_fill_brewer(palette = "Blues")
 
-# Print the plots
-print(speed_plot)
-print(spin_rate_plot)
+# Plot for average spin rate
+ggplot(simple_spin_data, aes(x = pitch_type, y = average_value, fill = pitch_type)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Pitch Spin Rates",
+       x = "Pitch Type",
+       y = "Average Spin Rate (rpm)") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Greens")
+
 ```
-
-
 
 
 
@@ -215,12 +178,27 @@ ggplot(spin_data, aes(x = TJS, y = spin_rate, fill = as.factor(TJS))) +
   theme_minimal() 
 ```
 
+
+
+
+1. Logistic Model
+
 ```{r}
+
+options(repos = c(CRAN = "https://github.com/cameronplayle/CameronPlayle-PII-Project.git"))
+
+# Now install the packages
+install.packages(c("tidymodels", "dplyr", "readr", "ggplot2"), checkBuilt = FALSE)
+
 # Load necessary libraries
 install.packages(c("tidymodels", "dplyr", "readr", "ggplot2"), checkBuilt = FALSE)
 library(tidymodels)
 library(dplyr)
 library(readr)
+
+# Remove rows with any missing values
+average_data <- average_data %>%
+  drop_na()
 
 # Preprocess the data
 average_data <- average_data %>%
@@ -255,25 +233,86 @@ print(logistic_fit)
 ```
 
 
-```{r}
-# Visualize predicted probabilities
-test_predictions <- logistic_fit %>%
-  predict(new_data = test_data, type = "prob") %>%
-  bind_cols(test_data)
 
-# Example of visualizing predicted probabilities vs one predictor (e.g., avg_ff_speed)
-ggplot(test_predictions, aes(x = avg_ff_speed, y = .pred_1)) +
-  geom_point() +
-  labs(title = "Predicted Probability vs avg_ff_speed",
-       x = "avg_ff_speed",
-       y = "Predicted Probability of TJS")
+
+
+```{r}
+# Predict probabilities on the test data
+predictions <- logistic_fit %>%
+  predict(new_data = test_data, type = "prob")
+
+# Verify the structure of predictions and test_data
+str(predictions)
+str(test_data)
+
+# Combine predictions with test data to ensure 'TJS' is present
+test_results <- test_data %>%
+  bind_cols(predictions)
+
+# Check if the 'TJS' column exists and is correctly formatted
+if("TJS" %in% colnames(test_results)) {
+  test_results$TJS <- as.factor(test_results$TJS)  # Ensure TJS is a factor
+}
 
 # Visualize ROC curve
-roc_curve <- logistic_fit %>%
-  predict(new_data = test_data, type = "prob") %>%
+roc_curve_data <- test_results %>%
   roc_curve(truth = TJS, .pred_1)
 
-autoplot(roc_curve)
+# Plot the ROC curve
+autoplot(roc_curve_data)
+
+
+
+```
+
+
+2. Support Vector Machine (SVM)
+
+```{r}
+# Define an SVM model with a radial basis function (RBF) kernel
+svm_model <- svm_rbf() %>%
+  set_engine("kernlab") %>%
+  set_mode("classification")
+
+# Create a workflow
+svm_workflow <- workflow() %>%
+  add_recipe(recipe) %>%
+  add_model(svm_model)
+
+# Fit the model and assign it to svm_fit
+svm_fit <- svm_workflow %>%
+  fit(data = train_data)
+# Convert TJS to a factor if it isn't already
+test_data <- test_data %>%
+  mutate(TJS = as.factor(TJS))
+
+# Generate predictions and combine with test data
+svm_predictions <- predict(svm_fit, new_data = test_data, type = "prob")
+test_results <- bind_cols(test_data, svm_predictions)
+
+# Verify that TJS is a factor and .pred_1 is numeric
+str(test_results)
+
+# Generate and plot ROC curve
+roc_curve_data_svm <- roc_curve(test_results, truth = TJS, .pred_1)
+autoplot(roc_curve_data_svm)
+```
+```{r}
+# Ensure TJS is a factor
+test_data <- test_data %>%
+  mutate(TJS = as.factor(TJS))
+
+# Generate predictions (assuming svm_fit is your fitted model)
+svm_predictions <- predict(svm_fit, new_data = test_data, type = "prob")
+
+# Combine predictions with test data
+test_results <- bind_cols(test_data, svm_predictions)
+
+# Calculate ROC curve data
+roc_curve_data_svm <- roc_curve(test_results, truth = TJS, .pred_1)
+
+# Print ROC curve results
+print(roc_curve_data_svm)
 
 ```
 

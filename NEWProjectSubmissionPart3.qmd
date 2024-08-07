@@ -26,13 +26,6 @@ Plots produced here can be scatterplots, boxplots, violinplots, etc. Tables can 
 
 # Setup
 
-```{r}
-#load needed packages. make sure they are installed.
-library(here) #for data loading/saving
-library(dplyr)
-library(skimr)
-library(ggplot2)
-```
 
 
 Load the data.
@@ -56,6 +49,7 @@ pitchdata
 ```{r}
 # data cleaning
 library(here) #for data loading/saving
+install.packages("dplyr")
 library(dplyr)
 library(skimr)
 library(ggplot2)
@@ -105,73 +99,6 @@ average_data <- merged_data %>%
   select(player_name, avg_ff_speed, avg_ff_spin, avg_ch_speed, avg_ch_spin, avg_cu_speed, avg_cu_spin, avg_fc_speed, avg_fc_spin, avg_sl_speed, avg_sl_spin, TJS)
 
 ```
-Data Viz 
-```{r}
-
-# Calculate average speeds and spin rates for each pitch type
-average_data <- merged_data %>%
-  mutate(
-    avg_ff_speed = rowMeans(select(., FF_release_speed, SI_release_speed), na.rm = TRUE),
-    avg_ff_spin = rowMeans(select(., FF_release_spin_rate, SI_release_spin_rate), na.rm = TRUE),
-    avg_ch_speed = CH_release_speed,
-    avg_ch_spin = CH_release_spin_rate,
-    avg_cu_speed = CU_release_speed,
-    avg_cu_spin = CU_release_spin_rate,
-    avg_fc_speed = FC_release_speed,
-    avg_fc_spin = FC_release_spin_rate,
-    avg_sl_speed = SL_release_speed,
-    avg_sl_spin = SL_release_spin_rate
-  ) %>%
-  select(player_name, avg_ff_speed, avg_ff_spin, avg_ch_speed, avg_ch_spin, avg_cu_speed, avg_cu_spin, avg_fc_speed, avg_fc_spin, avg_sl_speed, avg_sl_spin, TJS)
-
-# Separate the data for speed and spin rate, and remove NA values
-speed_data <- average_data %>%
-  select(player_name, starts_with("avg_")) %>%
-  select(player_name, avg_ff_speed, avg_ch_speed, avg_cu_speed, avg_fc_speed, avg_sl_speed) %>%
-  drop_na()
-
-spin_rate_data <- average_data %>%
-  select(player_name, starts_with("avg_")) %>%
-  select(player_name, avg_ff_spin, avg_ch_spin, avg_cu_spin, avg_fc_spin, avg_sl_spin) %>%
-  drop_na()
-
-# Reshape the data from wide to long format for speed, and remove NA values
-speed_data_long <- speed_data %>%
-  pivot_longer(cols = starts_with("avg_"), names_to = "pitch_type", values_to = "average_speed") %>%
-  drop_na()
-
-# Reshape the data from wide to long format for spin rate, and remove NA values
-spin_rate_data_long <- spin_rate_data %>%
-  pivot_longer(cols = starts_with("avg_"), names_to = "pitch_type", values_to = "average_spin_rate") %>%
-  drop_na()
-
-# Create a bar plot for average speeds
-speed_plot <- ggplot(speed_data_long, aes(x = pitch_type, y = average_speed)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal() +
-  labs(title = "Average Speeds for Each Pitch Type",
-       x = "Pitch Type",
-       y = "Average Speed") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Create a bar plot for average spin rates
-spin_rate_plot <- ggplot(spin_rate_data_long, aes(x = pitch_type, y = average_spin_rate)) +
-  geom_bar(stat = "identity", fill = "darkorange") +
-  theme_minimal() +
-  labs(title = "Average Spin Rates for Each Pitch Type",
-       x = "Pitch Type",
-       y = "Average Spin Rate") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Print the plots
-print(speed_plot)
-print(spin_rate_plot)
-```
-
-
-
-
-
 
 Data Viz
 
@@ -216,64 +143,6 @@ ggplot(spin_data, aes(x = TJS, y = spin_rate, fill = as.factor(TJS))) +
 ```
 
 ```{r}
-# Load necessary libraries
-install.packages(c("tidymodels", "dplyr", "readr", "ggplot2"), checkBuilt = FALSE)
-library(tidymodels)
-library(dplyr)
-library(readr)
-
-# Preprocess the data
-average_data <- average_data %>%
-  mutate(TJS = as.factor(TJS))
-
-# Split the data
-set.seed(123)
-data_split <- initial_split(average_data, prop = 0.8)
-train_data <- training(data_split)
-test_data <- testing(data_split)
-
-# Define a recipe
-recipe <- recipe(TJS ~ avg_ff_speed + avg_ff_spin + avg_ch_speed + avg_ch_spin + avg_cu_speed + avg_cu_spin + avg_fc_speed + avg_fc_spin + avg_sl_speed + avg_sl_spin, data = train_data) %>%
-  step_normalize(all_predictors())
-
-# Define a logistic regression model
-logistic_model <- logistic_reg() %>%
-  set_engine("glm") %>%
-  set_mode("classification")
-
-# Create a workflow
-logistic_workflow <- workflow() %>%
-  add_recipe(recipe) %>%
-  add_model(logistic_model)
-
-# Fit the model
-logistic_fit <- logistic_workflow %>%
-  fit(data = train_data)
-
-# Print the model summary
-print(logistic_fit)
-```
-
-
-```{r}
-# Visualize predicted probabilities
-test_predictions <- logistic_fit %>%
-  predict(new_data = test_data, type = "prob") %>%
-  bind_cols(test_data)
-
-# Example of visualizing predicted probabilities vs one predictor (e.g., avg_ff_speed)
-ggplot(test_predictions, aes(x = avg_ff_speed, y = .pred_1)) +
-  geom_point() +
-  labs(title = "Predicted Probability vs avg_ff_speed",
-       x = "avg_ff_speed",
-       y = "Predicted Probability of TJS")
-
-# Visualize ROC curve
-roc_curve <- logistic_fit %>%
-  predict(new_data = test_data, type = "prob") %>%
-  roc_curve(truth = TJS, .pred_1)
-
-autoplot(roc_curve)
 
 ```
 

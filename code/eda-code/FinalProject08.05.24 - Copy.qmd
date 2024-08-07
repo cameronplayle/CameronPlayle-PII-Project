@@ -108,6 +108,8 @@ average_data <- merged_data %>%
 Data Viz 
 ```{r}
 
+library(tidyverse)
+
 # Calculate average speeds and spin rates for each pitch type
 average_data <- merged_data %>%
   mutate(
